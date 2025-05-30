@@ -40,6 +40,6 @@ jobs:
         if: steps.check-files.outputs.files_exist == 'true'
         uses: nyrkio/change-detection@v2
         with:
-          tool: 'generic' # Use 'generic' since go-tpc isn't natively supported
+          tool: 'gotpc' 
           output-file-path: ${{ env.LATEST_FILE }}
           nyrkio-token: ${{ secrets.NYRKIO_JWT_TOKEN }}
