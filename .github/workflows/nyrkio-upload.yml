@@ -1,0 +1,36 @@
+name: Upload go-tpc Results to Nyrkiö
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  upload-results:
+    name: Performance regression check
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the repository to access the latest results file
+      - uses: actions/checkout@v4
+
+      # Find the latest results file
+      - name: Find latest go-tpc results
+        run: |
+          # Get the most recent file in load-test-results/
+          LATEST_FILE=$(ls -t load-test-results/results-*.txt | head -n 1)
+          if [ -z "$LATEST_FILE" ]; then
+            echo "Error: No results file found in load-test-results/"
+            exit 1
+          fi
+          echo "LATEST_FILE=$LATEST_FILE" >> $GITHUB_ENV
+
+      # Analyze results with Nyrkiö
+      - name: Analyze go-tpc results with Nyrkiö
+        uses: nyrkio/change-detection@v2
+        with:
+          tool: 'generic' # Use 'generic' since go-tpc isn't natively supported
+          output-file-path: ${{ env.LATEST_FILE }}
+          nyrkio-token: ${{ secrets.NYRKIO_JWT_TOKEN }}
