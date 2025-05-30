@@ -12,25 +12,32 @@ jobs:
   upload-results:
     name: Performance regression check
     runs-on: ubuntu-latest
-    # Skip the job if no results files exist
-    if: ${{ !empty(glob('load-test-results/results-*.txt')) }}
     steps:
       # Checkout the repository to access the latest results file
       - uses: actions/checkout@v4
 
-      # Find the latest results file
-      - name: Find latest go-tpc results
+      # Check for results files and set output
+      - name: Check for go-tpc results
+        id: check-files
         run: |
-          # Get the most recent file in load-test-results/
-          LATEST_FILE=$(ls -t load-test-results/results-*.txt | head -n 1)
-          if [ -z "$LATEST_FILE" ]; then
-            echo "No results file found in load-test-results/, but continuing due to prior check"
-            exit 0
+          if ls load-test-results/results-*.txt >/dev/null 2>&1; then
+            echo "Files found"
+            echo "files_exist=true" >> $GITHUB_OUTPUT
+          else
+            echo "No results files found in load-test-results/, skipping workflow"
+            echo "files_exist=false" >> $GITHUB_OUTPUT
           fi
+
+      # Find the latest results file (only if files exist)
+      - name: Find latest go-tpc results
+        if: steps.check-files.outputs.files_exist == 'true'
+        run: |
+          LATEST_FILE=$(ls -t load-test-results/results-*.txt | head -n 1)
           echo "LATEST_FILE=$LATEST_FILE" >> $GITHUB_ENV
 
-      # Analyze results with Nyrkiö
+      # Analyze results with Nyrkiö (only if files exist)
       - name: Analyze go-tpc results with Nyrkiö
+        if: steps.check-files.outputs.files_exist == 'true'
         uses: nyrkio/change-detection@v2
         with:
           tool: 'generic' # Use 'generic' since go-tpc isn't natively supported
